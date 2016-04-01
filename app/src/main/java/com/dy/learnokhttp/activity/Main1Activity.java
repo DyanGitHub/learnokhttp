@@ -8,8 +8,8 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import com.dy.learnokhttp.R;
-import com.dy.learnokhttp.util.CacheType;
-import com.dy.learnokhttp.util.OkHttpUtils;
+import com.dy.learnokhttp.util.okhttp.CacheType;
+import com.dy.learnokhttp.util.okhttp.OkHttpUtils;
 import com.squareup.okhttp.Response;
 
 import java.io.IOException;
@@ -98,7 +98,12 @@ public class Main1Activity extends AppCompatActivity {
         tv7.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                OkHttpUtils.requestDownload(downloadUrl,getExternalCacheDir().getAbsolutePath()+"/mydownload", downCallback);
+                try {
+                    OkHttpUtils.requestDownload(downloadUrl, getExternalCacheDir().getAbsolutePath() + "/mydownload", downCallback);
+
+                } catch (Exception e) {
+                    Log.e(TAG, "发送下载请求中，设置目标文件目录失败");
+                }
             }
         });
 

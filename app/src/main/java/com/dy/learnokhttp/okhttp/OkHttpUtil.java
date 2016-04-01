@@ -5,8 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import com.dy.learnokhttp.okhttp.GetCache;
-import com.dy.learnokhttp.util.CacheType;
+import com.dy.learnokhttp.util.okhttp.CacheType;
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.Callback;
@@ -34,11 +33,16 @@ public class OkHttpUtil {
     	 */
 	public static void configClient(Context context)
 	{
-		CACHE_DIRECTORY=context.getExternalCacheDir().getAbsoluteFile();
-		Log.d(TAG,context.getExternalCacheDir().getAbsoluteFile().toString());
-		client.setCache(new Cache(CACHE_DIRECTORY,SIZE_OF_CACHE));//设置缓存
-		client.setConnectTimeout(30, TimeUnit.SECONDS);//设置连接超时,超时会在onfailed中响应
-
+		try {
+			CACHE_DIRECTORY = context.getExternalCacheDir().getAbsoluteFile();
+			Log.d(TAG, context.getExternalCacheDir().getAbsoluteFile().toString());
+			client.setCache(new Cache(CACHE_DIRECTORY, SIZE_OF_CACHE));//设置缓存
+			client.setConnectTimeout(30, TimeUnit.SECONDS);//设置连接超时,超时会在onfailed中响应
+		}catch (Exception e)
+		{
+			Log.e(TAG,"缓存及网络相关初始化设置失败");
+			return;
+		}
 
 	}
 

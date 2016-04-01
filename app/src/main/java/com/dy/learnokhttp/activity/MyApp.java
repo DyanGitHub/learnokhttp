@@ -2,7 +2,7 @@ package com.dy.learnokhttp.activity;
 
 import android.app.Application;
 
-import com.dy.learnokhttp.util.OkHttpUtils;
+import com.dy.learnokhttp.util.okhttp.OkHttpUtils;
 
 /**
  * Created by Dyan on 2016/3/29.
