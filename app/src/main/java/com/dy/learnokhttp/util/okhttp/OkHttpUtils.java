@@ -3,10 +3,8 @@ package com.dy.learnokhttp.util.okhttp;
 import android.content.Context;
 import android.util.Log;
 
-import com.dy.learnokhttp.util.okhttp.CacheType;
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.CacheControl;
-import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.Interceptor;
 import com.squareup.okhttp.OkHttpClient;
@@ -63,13 +61,23 @@ public class OkHttpUtils {
 	 */
 //	1、获取json数据到本地(get/post,缓存)
 	//一般get请求String返回
-	public static void requestGet(String url, CallbackString callbackString, int cacheType) {
+	public static void requestGet(String url, CallbackUI callbackString, int cacheType)
+	{
+		requestGet(url, callbackString, cacheType, null);
+	}
+
+	public static void requestGet(String url, CallbackUI callbackString, int cacheType,String tag) {
 		if (url == null || callbackString == null)
 			return;
-		requestPost(url, callbackString, cacheType, null);
+		requestPost(url, callbackString, cacheType, tag, null);
 	}
     //一般Post请求String返回
-	public static void requestPost(String url, final CallbackString callbackString, int cacheType,Map<String,String> map) {
+	public static void requestPost(String url, final CallbackUI callbackString, int cacheType,Map<String,String> map)
+	{
+		requestPost(url,callbackString,cacheType,null,map);
+	}
+
+	public static void requestPost(String url, final CallbackUI callbackString, int cacheType,String tag,Map<String,String> map) {
 		if (url == null || callbackString == null)
 			return;
 		final Request.Builder rBuilder=new Request.Builder();
@@ -84,104 +92,107 @@ public class OkHttpUtils {
 			rBuilder.post(builder.build());
 		}
 		rBuilder.url(url);
+		if(tag!=null)
+		{
+			rBuilder.tag(tag);
+		}
+
 		switch (cacheType)
 		{
 			case CacheType.ONLY_NETWORK:
-				responseFromNetwork(rBuilder,callbackString);
+				responseFromNetwork(rBuilder,new HandlerCallback(callbackString));
 				break;
 			case CacheType.ONLY_CACHED:
-				responseFromCache(rBuilder, callbackString);
+				responseFromCache(rBuilder, new HandlerCallback(callbackString));
 				break;
 			case CacheType.CACHED_ELSE_NETWORK:
-				responseFromCache(rBuilder, new CallbackString() {
+				responseFromCache(rBuilder, new HandlerCallback(callbackString) {
 					@Override
 					public void onResponse(Response response) throws IOException {
 						if (response.code() == 200) {
-							callbackString.onResponse(response);
+							super.onResponse(response);
 						} else {
-							responseFromNetwork(rBuilder, callbackString);
+							responseFromNetwork(rBuilder, new HandlerCallback(callbackString));
 						}
 					}
 
 					@Override
 					public void onFailure(Request request, IOException e) {
-						super.onFailure(request, e);
-						responseFromNetwork(rBuilder, callbackString);
+						responseFromNetwork(rBuilder, new HandlerCallback(callbackString));
 					}
 				});
 				break;
 			case CacheType.NETWORK_ELSE_CACHED:
-				responseFromNetwork(rBuilder, new CallbackString() {
+				responseFromNetwork(rBuilder, new HandlerCallback(callbackString) {
 					@Override
 					public void onFailure(Request request, IOException e) {
-						super.onFailure(request, e);//无网下网络请求时报异常是这里出的
-						responseFromCache(rBuilder, callbackString);
+						responseFromCache(rBuilder, new HandlerCallback(callbackString));
 					}
 
 					@Override
 					public void onResponse(Response response) throws IOException {
-						if(response.code()==200){
-							callbackString.onResponse(response);
-						}else{
-							responseFromCache(rBuilder, callbackString);
+						if (response.code() == 200) {
+							super.onResponse(response);
+						} else {
+							responseFromCache(rBuilder, new HandlerCallback(callbackString));
 						}
 					}
 				});
 				break;
 			case CacheType.CACHED_THEN_NETWORK:
-				responseFromCache(rBuilder,callbackString);
-				responseFromNetwork(rBuilder, new CallbackString() {
+				responseFromCache(rBuilder,new HandlerCallback(callbackString){
 					@Override
 					public void onFailure(Request request, IOException e) {
-						super.onFailure(request, e);
-					}
-
-					@Override
-					public void onResponse(Response response) throws IOException {
-						if (response.code() == 200) {
-							callbackString.onResponse(response);
-						}
+						//加载缓存失败，不作理会
 					}
 				});
+				responseFromNetwork(rBuilder, new HandlerCallback(callbackString));
 				break;
 		}
 	}
 
-		public static void responseFromNetwork(Request.Builder rBuilder,CallbackString callbackString)
+		public static void responseFromNetwork(Request.Builder rBuilder,HandlerCallback handlerCallback)
 		{
 			rBuilder.cacheControl(CacheControl.FORCE_NETWORK);
-			client.newCall(rBuilder.build()).enqueue(callbackString);
+			client.newCall(rBuilder.build()).enqueue(handlerCallback);
 		}
-		public static void responseFromCache(Request.Builder rBuilder,CallbackString callbackString)
+		public static void responseFromCache(Request.Builder rBuilder,HandlerCallback handlerCallback)
 		{
 			rBuilder.cacheControl(CacheControl.FORCE_CACHE);
-			client.newCall(rBuilder.build()).enqueue(callbackString);
+			client.newCall(rBuilder.build()).enqueue(handlerCallback);
 		}
 
 
 		//	2、下载文件到本地
-		public static void requestDownload(final String url ,final String  fileDir,final CallbackString callbackString)
+		public static void requestDownload(final String url ,final String  fileDir,final CallbackUI callbackString)
+		{requestDownload(url,fileDir,callbackString,null);}
+
+		public static void requestDownload(final String url ,final String  fileDir,final CallbackUI callbackString,String tag)
 		{
 			if(url==null||callbackString==null||fileDir==null)
 			return;
-			Request request=new Request.Builder().url(url).build();
-			client.newCall(request).enqueue(new CallbackString() {
-				@Override
-				public void onFailure(Request request, IOException e) {
-					callbackString.onFailure(request,e);
-				}
-
+			Request.Builder builder=new Request.Builder().url(url);
+			if(tag!=null)
+			{
+				builder.tag(tag);
+			}
+			Request request=builder.build();
+			client.newCall(request).enqueue(new HandlerCallback(callbackString) {
 				@Override
 				public void onResponse(Response response)  {
 					if(response==null||response.code()!=200)
 					{
-						callbackString.onFailure(null,new IOException("response==null"));
+						super.onFailure(null,new IOException("response==null"));
 					}
-					saveFile(response,url,fileDir,callbackString);
+					else
+					{
+						saveFile(response,url,fileDir,this);
+					}
+
 				}
 			});
 		}
-	public static void saveFile(Response response,String url,String fileDir,CallbackString callbackString)
+	public static void saveFile(Response response,String url,String fileDir,HandlerCallback callbackString)
 	{
 		InputStream is = null;
 		byte[] buf = new byte[2048];
@@ -209,7 +220,6 @@ public class OkHttpUtils {
 			}
 			fos.close();
 			is.close();
-			callbackString.onResponse(response);
 		}
 		catch (IOException e)
 		{
@@ -277,16 +287,12 @@ public class OkHttpUtils {
 	}
 
 
-	public static class CallbackString implements Callback {
-		@Override
-		public void onFailure(Request request, IOException e) {
-			httpError(e);
+	public static class CallbackUI  {
+		public void onFailure( IOException e) {
 		}
 
-		@Override
 		public void onResponse(final Response response) throws IOException {
 		}
-
 		public void onProgress(float progress, long total) {
 			//progress 0-1
 		}
@@ -299,6 +305,6 @@ public class OkHttpUtils {
 		Log.e(TAG, e.getMessage());
 	}
 
-	public static final String TAG = "DY";
+	public static final String TAG = "dy";
 
 }

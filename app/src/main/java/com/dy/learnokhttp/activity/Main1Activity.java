@@ -123,70 +123,42 @@ public class Main1Activity extends AppCompatActivity {
         {
             HashMap<String,String> map=new HashMap<>();
             map.put("username","dy1111");
-            map.put("password","rrrr");
+            map.put("password","rrrrrr");
             OkHttpUtils.requestPost(postUrl,jsonCallback,cacheType,map);
         }
     }
-    private OkHttpUtils.CallbackString jsonCallback = new OkHttpUtils.CallbackString() {
+    private OkHttpUtils.CallbackUI jsonCallback = new OkHttpUtils.CallbackUI() {
 
         @Override
-        public void onFailure(com.squareup.okhttp.Request request, final IOException e) {
-            super.onFailure(request, e);
-            tv5.post(new Runnable() {
-                @Override
-                public void run() {
-                    tv5.setText(e.toString());
-                }
-            });
+        public void onFailure(IOException e) {
+            super.onFailure(e);
+            tv5.setText(e.getMessage());
+
         }
 
         @Override
-        public void onResponse(final Response response) throws IOException {
-            if (response != null) {
-               final String result=response.body().string();
-                Log.d(TAG,"response:"+result);
-                tv5.post(new Runnable() {
-                    @Override
-                    public void run() {
-                            tv5.setText(result);
-//                            tv7.setText(result);//实践证明可以加上其他ui的更新语句
-                    }
-                });
-            }
+        public void onResponse(Response response) throws IOException {
+            tv5.setText(response.body().string());
         }
     };
-    private OkHttpUtils.CallbackString downCallback = new OkHttpUtils.CallbackString() {
+    private OkHttpUtils.CallbackUI downCallback = new OkHttpUtils.CallbackUI() {
 
         @Override
-        public void onFailure(com.squareup.okhttp.Request request, final IOException e) {
-            super.onFailure(request, e);
-            tv5.post(new Runnable() {
-                @Override
-                public void run() {
-                    tv5.setText(e.toString());
-                }
-            });
+        public void onFailure(IOException e) {
+            super.onFailure(e);
+            tv5.setText(e.getMessage());
+
         }
 
         @Override
         public void onProgress(float progress, long total) {
             super.onProgress(progress, total);
-            Log.d(TAG,progress+":"+total);
+            tv5.setText(progress+"");
         }
 
         @Override
         public void onResponse(final Response response) throws IOException {
-            if (response != null) {
-                final String result=response.body().contentLength()+"b";
-                Log.d(TAG,"response:"+response.body().contentLength()+"b");
-                tv5.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        tv5.setText(result);
-//                            tv7.setText(result);//实践证明可以加上其他ui的更新语句
-                    }
-                });
-            }
+            tv5.setText(response.body().contentLength()+"");
         }
     };
 }

@@ -10,7 +10,6 @@ import com.dy.learnokhttp.util.gson.testbean.TVViewBean;
 import com.dy.learnokhttp.util.okhttp.CacheType;
 import com.dy.learnokhttp.util.okhttp.OkHttpUtils;
 import com.google.gson.Gson;
-import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
 import java.io.IOException;
@@ -32,11 +31,11 @@ public class MainGsonActivity extends Activity {
 	}
 	public final static String url="http://api.zhongguoguzheng.com/api.php?op=show&catid=489&id=1452";
 	public final static String TAG="dy";
-	public OkHttpUtils.CallbackString callbackString=new OkHttpUtils.CallbackString()
+	public OkHttpUtils.CallbackUI callbackString=new OkHttpUtils.CallbackUI()
 	{
 		@Override
-		public void onFailure(Request request, IOException e) {
-			super.onFailure(request, e);
+		public void onFailure(IOException e) {
+			super.onFailure(e);
 		}
 
 		@Override
