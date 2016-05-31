@@ -1,6 +1,8 @@
-package com.dy.learnokhttp.util.okhttp;
+package com.guzheng.android.util.okhttp;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.util.Log;
 
 import com.squareup.okhttp.Cache;
@@ -12,9 +14,7 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
  * get（是否缓存）\post\下载均完成测试0331
  *
  * 上传待调试
+ *
+ *
  */
 public class OkHttpUtils {
 
@@ -61,25 +63,38 @@ public class OkHttpUtils {
 	 */
 //	1、获取json数据到本地(get/post,缓存)
 	//一般get请求String返回
-	public static void requestGet(String url, CallbackUI callbackString, int cacheType)
+	public static void requestGet(Context context,String url, CallbackUI callbackString, int cacheType)
 	{
-		requestGet(url, callbackString, cacheType, null);
+		requestGet(context,url, callbackString, cacheType, null);
 	}
 
-	public static void requestGet(String url, CallbackUI callbackString, int cacheType,String tag) {
+	public static void requestGet(Context context,String url, CallbackUI callbackString, int cacheType, String tag) {
 		if (url == null || callbackString == null)
 			return;
-		requestPost(url, callbackString, cacheType, tag, null);
+		requestPost(context,url, callbackString, cacheType, tag, null);
 	}
     //一般Post请求String返回
-	public static void requestPost(String url, final CallbackUI callbackString, int cacheType,Map<String,String> map)
+	public static void requestPost(Context context,String url, final CallbackUI callbackString, int cacheType, Map<String,String> map)
 	{
-		requestPost(url,callbackString,cacheType,null,map);
+		requestPost(context,url,callbackString,cacheType,null,map);
 	}
-
-	public static void requestPost(String url, final CallbackUI callbackString, int cacheType,String tag,Map<String,String> map) {
+	public static boolean isNetworkConnected(Context context) {
+		ConnectivityManager cm = (ConnectivityManager) context
+				.getSystemService(context.CONNECTIVITY_SERVICE);
+		NetworkInfo network = cm.getActiveNetworkInfo();
+		if (network != null) {
+			return network.isAvailable();
+		}
+		return false;
+	}
+	public static void requestPost(Context context,String url, final CallbackUI callbackString, int cacheType, String tag, Map<String,String> map) {
 		if (url == null || callbackString == null)
 			return;
+		if(cacheType==CacheType.ONLY_NETWORK&&!isNetworkConnected(context))
+		{
+			callbackString.onFailure(new Exception("网络连接异常"));
+			return;
+		}
 		final Request.Builder rBuilder=new Request.Builder();
 		if(map!=null)
 		{
@@ -162,91 +177,6 @@ public class OkHttpUtils {
 			client.newCall(rBuilder.build()).enqueue(handlerCallback);
 		}
 
-
-		//	2、下载文件到本地
-		public static void requestDownload(final String url ,final String  fileDir,final CallbackUI callbackString)
-		{requestDownload(url,fileDir,callbackString,null);}
-
-		public static void requestDownload(final String url ,final String  fileDir,final CallbackUI callbackString,String tag)
-		{
-			if(url==null||callbackString==null||fileDir==null)
-			return;
-			Request.Builder builder=new Request.Builder().url(url);
-			if(tag!=null)
-			{
-				builder.tag(tag);
-			}
-			Request request=builder.build();
-			client.newCall(request).enqueue(new HandlerCallback(callbackString) {
-				@Override
-				public void onResponse(Response response)  {
-					if(response==null||response.code()!=200)
-					{
-						super.onFailure(null,new IOException("response==null"));
-					}
-					else
-					{
-						saveFile(response,url,fileDir,this);
-					}
-
-				}
-			});
-		}
-	public static void saveFile(Response response,String url,String fileDir,HandlerCallback callbackString)
-	{
-		InputStream is = null;
-		byte[] buf = new byte[2048];
-		int len = 0;
-		FileOutputStream fos = null;
-		try
-		{
-			is = response.body().byteStream();
-			final long total = response.body().contentLength();
-			long sum = 0;
-			File dir = new File(fileDir);
-			if (!dir.exists())
-			{
-				dir.mkdirs();
-			}
-			File file = new File(dir, url.substring(url.lastIndexOf("/") + 1));
-			Log.d(TAG,file.getAbsolutePath().toString());
-			fos = new FileOutputStream(file);
-			while ((len = is.read(buf)) != -1)
-			{
-				sum += len;
-				fos.write(buf, 0, len);
-				final long finalSum = sum;
-				callbackString.onProgress(sum * 1.0f / total,total);
-			}
-			fos.close();
-			is.close();
-		}
-		catch (IOException e)
-		{
-			callbackString.onFailure(null,e);
-		}
-		finally {
-			if(is!=null)
-			{
-				try {
-					is.close();
-					is=null;
-				} catch (IOException e) {
-					callbackString.onFailure(null,e);
-				}
-			}
-			if(fos!=null)
-			{
-				try {
-					fos.close();
-					fos=null;
-				} catch (IOException e) {
-					callbackString.onFailure(null, e);
-				}
-			}
-		}
-
-	}
     //	3、上传文件
 	public static void requestUpdate()
 	{
@@ -286,16 +216,12 @@ public class OkHttpUtils {
 //		}
 	}
 
+    //回调 onFailure获取数据失败（无网、服务器失败、onResponse中解析异常等）onResponse（网络请求成功）
+	public static abstract class CallbackUI  {
+		public abstract void onFailure( Exception e);
 
-	public static class CallbackUI  {
-		public void onFailure( IOException e) {
-		}
-
-		public void onResponse(final Response response) throws IOException {
-		}
-		public void onProgress(float progress, long total) {
-			//progress 0-1
-		}
+		public abstract void onResponse(final Response response) throws Exception;
+		public void onProgress(float progress, long total,File file ){} ;
 
 	}
 

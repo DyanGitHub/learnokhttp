@@ -131,7 +131,6 @@ public class Main1Activity extends AppCompatActivity {
 
         @Override
         public void onFailure(IOException e) {
-            super.onFailure(e);
             tv5.setText(e.getMessage());
 
         }
@@ -140,19 +139,22 @@ public class Main1Activity extends AppCompatActivity {
         public void onResponse(Response response) throws IOException {
             tv5.setText(response.body().string());
         }
+
+        @Override
+        public void onProgress(float progress, long total) {
+
+        }
     };
     private OkHttpUtils.CallbackUI downCallback = new OkHttpUtils.CallbackUI() {
 
         @Override
         public void onFailure(IOException e) {
-            super.onFailure(e);
             tv5.setText(e.getMessage());
 
         }
 
         @Override
         public void onProgress(float progress, long total) {
-            super.onProgress(progress, total);
             tv5.setText(progress+"");
         }
 

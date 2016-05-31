@@ -35,12 +35,10 @@ public class MainGsonActivity extends Activity {
 	{
 		@Override
 		public void onFailure(IOException e) {
-			super.onFailure(e);
 		}
 
 		@Override
 		public void onResponse(Response response) throws IOException {
-			super.onResponse(response);
 			if(response==null)
 				return;
 			String result =response.body().string();
